@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 
+const STAT_ICONS = {
+  total:    { emoji: '📦', color: '#8b5cf6' },
+  active:   { emoji: '✅', color: '#22c55e' },
+  assigned: { emoji: '🔗', color: '#06b6d4' },
+  maintenance: { emoji: '🔧', color: '#eab308' },
+  warranty: { emoji: '⚠️', color: '#ef4444' },
+  value:    { emoji: '💰', color: '#f43f5e' },
+};
+
+function StatCard({ label, value, sub, variant, iconEmoji }) {
+  return (
+    <div className={`stat-card ${variant}`}>
+      <div className="stat-card-top">
+        <span className="stat-label">{label}</span>
+        <span className="stat-emoji">{iconEmoji}</span>
+      </div>
+      <div className="stat-value">{value}</div>
+      {sub && <div className="stat-sub">{sub}</div>}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData]       = useState(null);
   const [byDept, setByDept]   = useState([]);
@@ -13,19 +35,9 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      color: 'var(--text-muted)', padding: '40px 0',
-      fontSize: 14, fontWeight: 500,
-    }}>
-      <span style={{
-        display: 'inline-block', width: 16, height: 16,
-        border: '2px solid var(--border-strong)',
-        borderTopColor: 'var(--accent)',
-        borderRadius: '50%',
-        animation: 'spin .65s linear infinite',
-      }} />
-      Loading dashboard…
+    <div className="dash-loading">
+      <div className="dash-spinner" />
+      <span>Loading dashboard…</span>
     </div>
   );
 
@@ -39,59 +51,33 @@ export default function Dashboard() {
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user.full_name?.split(' ')[0] || 'there';
 
+  const fmtValue = (v) =>
+    '$' + Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
   return (
     <div>
-      {/* ── Header ── */}
-      <div style={{ marginBottom: 32 }}>
-        <h2 style={{
-          fontSize: 26, fontWeight: 800,
-          color: 'var(--text-primary)', letterSpacing: '-.6px',
-          marginBottom: 4,
-        }}>
-          {greet}, {firstName}
-        </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          Here's what's happening with your assets today.
-        </p>
+      {/* ── Page header ── */}
+      <div className="dash-header">
+        <div>
+          <h2 className="dash-title">{greet}, {firstName} 👋</h2>
+          <p className="dash-sub">Here's what's happening with your assets today.</p>
+        </div>
+        <div className="dash-date">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </div>
       </div>
 
       {/* ── Stats ── */}
       <div className="stats-grid">
-        <div className="stat-card primary">
-          <div className="stat-label">Total Assets</div>
-          <div className="stat-value">{data.totalAssets}</div>
-          <div className="stat-sub">All tracked devices</div>
-        </div>
-        <div className="stat-card success">
-          <div className="stat-label">Active</div>
-          <div className="stat-value">{statusMap.active || 0}</div>
-          <div className="stat-sub">In service</div>
-        </div>
-        <div className="stat-card cyan">
-          <div className="stat-label">Assigned</div>
-          <div className="stat-value">{data.assigned}</div>
-          <div className="stat-sub">{data.unassigned} unassigned</div>
-        </div>
-        <div className="stat-card warning">
-          <div className="stat-label">Maintenance</div>
-          <div className="stat-value">{statusMap.maintenance || 0}</div>
-          <div className="stat-sub">Under repair</div>
-        </div>
-        <div className="stat-card danger">
-          <div className="stat-label">Warranty Expiring</div>
-          <div className="stat-value">{data.warrantyExpiring}</div>
-          <div className="stat-sub">Within 30 days</div>
-        </div>
-        <div className="stat-card pink">
-          <div className="stat-label">Portfolio Value</div>
-          <div className="stat-value" style={{ fontSize: 20 }}>
-            ${Number(data.totalValue || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </div>
-          <div className="stat-sub">Total asset cost</div>
-        </div>
+        <StatCard label="Total Assets"    value={data.totalAssets}           sub="All tracked devices"   variant="primary"  iconEmoji="📦" />
+        <StatCard label="Active"          value={statusMap.active || 0}      sub="In service"            variant="success"  iconEmoji="✅" />
+        <StatCard label="Assigned"        value={data.assigned}              sub={`${data.unassigned} unassigned`} variant="cyan" iconEmoji="🔗" />
+        <StatCard label="Maintenance"     value={statusMap.maintenance || 0} sub="Under repair"          variant="warning"  iconEmoji="🔧" />
+        <StatCard label="Warranty Expiring" value={data.warrantyExpiring}    sub="Within 30 days"        variant="danger"   iconEmoji="⚠️" />
+        <StatCard label="Portfolio Value" value={fmtValue(data.totalValue)}  sub="Total asset cost"      variant="pink"     iconEmoji="💰" />
       </div>
 
-      {/* ── Charts ── */}
+      {/* ── Charts row ── */}
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <div className="card">
           <div className="card-header">
@@ -99,15 +85,14 @@ export default function Dashboard() {
           </div>
           <div className="card-body">
             {!data.byType?.length
-              ? <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No data yet</p>
+              ? <p className="text-muted" style={{ fontSize: 13 }}>No assets yet</p>
               : (
                 <div className="bar-chart">
                   {data.byType.map(row => (
                     <div key={row.type} className="bar-row">
                       <span className="bar-label">{row.type}</span>
                       <div className="bar-track">
-                        <div className="bar-fill"
-                          style={{ width: `${(row.cnt / maxType) * 100}%` }} />
+                        <div className="bar-fill" style={{ width: `${(row.cnt / maxType) * 100}%` }} />
                       </div>
                       <span className="bar-count">{row.cnt}</span>
                     </div>
@@ -124,15 +109,17 @@ export default function Dashboard() {
           </div>
           <div className="card-body">
             {!byDept.length
-              ? <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No assignments yet</p>
+              ? <p className="text-muted" style={{ fontSize: 13 }}>No assignments yet</p>
               : (
                 <div className="bar-chart">
                   {byDept.map(row => (
                     <div key={row.department} className="bar-row">
                       <span className="bar-label">{row.department}</span>
                       <div className="bar-track">
-                        <div className="bar-fill"
-                          style={{ width: `${(row.cnt / maxDept) * 100}%`, background: 'var(--success)' }} />
+                        <div className="bar-fill" style={{
+                          width: `${(row.cnt / maxDept) * 100}%`,
+                          background: 'var(--success)',
+                        }} />
                       </div>
                       <span className="bar-count">{row.cnt}</span>
                     </div>
@@ -148,9 +135,7 @@ export default function Dashboard() {
       <div className="card">
         <div className="card-header">
           <h3>Recent Activity</h3>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
-            Latest events
-          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>Last 10 events</span>
         </div>
         <div className="table-wrap">
           <table>
@@ -181,10 +166,8 @@ export default function Dashboard() {
                         {row.action.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{row.details || '—'}</td>
-                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                      {row.username || '—'}
-                    </td>
+                    <td>{row.details || '—'}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.username || '—'}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                       {new Date(row.created_at).toLocaleString()}
                     </td>
