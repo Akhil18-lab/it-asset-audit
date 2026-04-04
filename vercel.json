@@ -1,0 +1,4 @@
+{
+  "comment": "Set Root Directory to 'frontend' in the Vercel project settings dashboard — this file is here to prevent Vercel from trying to build the backend.",
+  "ignoreCommand": "exit 0"
+}
