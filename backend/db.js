@@ -1,11 +1,12 @@
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const db = new Database(path.join(__dirname, 'assets.db'));
+const db = new DatabaseSync(path.join(__dirname, 'assets.db'));
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// node:sqlite uses exec() for PRAGMAs instead of pragma()
+db.exec("PRAGMA journal_mode = WAL");
+db.exec("PRAGMA foreign_keys = ON");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
