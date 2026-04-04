@@ -24,41 +24,75 @@ export default function Login() {
     }
   }
 
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }
+
   return (
     <div className="login-page">
       <div className="login-box">
-        <h1>IT Asset Audit</h1>
-        <p className="subtitle">Sign in to your account</p>
-        {error && <div className="alert alert-error">{error}</div>}
+        <div className="login-logo">
+          <div className="login-logo-icon">🛡️</div>
+          <div className="login-logo-text">
+            <h1>IT Asset Audit</h1>
+            <p>Asset Management System</p>
+          </div>
+        </div>
+
+        <p className="subtitle">Sign in to your account to continue</p>
+
+        {error && <div className="alert alert-error">⚠️ {error}</div>}
+
         <form onSubmit={handleSubmit}>
-          <div className="form-group mb-4">
+          <div className="form-group">
             <label>Username</label>
             <input
               type="text"
+              name="username"
               value={form.username}
-              onChange={e => setForm({ ...form, username: e.target.value })}
-              placeholder="Enter username"
+              onChange={handleChange}
+              placeholder="Enter your username"
               required
-              autoFocus
+              autoComplete="username"
             />
           </div>
-          <div className="form-group mb-4">
+          <div className="form-group" style={{ marginBottom: 20 }}>
             <label>Password</label>
             <input
               type="password"
+              name="password"
               value={form.password}
-              onChange={e => setForm({ ...form, password: e.target.value })}
-              placeholder="Enter password"
+              onChange={handleChange}
+              placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+
+          <button
+            type="submit"
+            className="login-submit-btn"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span style={{
+                  width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)',
+                  borderTopColor: '#fff', borderRadius: '50%',
+                  animation: 'spin .7s linear infinite', display: 'inline-block'
+                }} />
+                Signing in...
+              </>
+            ) : (
+              <>🔐 Sign In</>
+            )}
           </button>
         </form>
-        <p style={{ marginTop: 20, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}>
-          Default: admin / admin123
-        </p>
+
+        <div className="login-hint">
+          Default credentials: <code>admin</code> / <code>admin123</code>
+        </div>
       </div>
     </div>
   );

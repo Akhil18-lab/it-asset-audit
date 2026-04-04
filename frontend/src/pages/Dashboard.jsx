@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
+  const [data, setData]     = useState(null);
   const [byDept, setByDept] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +12,12 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="text-muted">Loading dashboard...</p>;
+  if (loading) return (
+    <div className="loading-text">
+      <div className="loading-spinner" />
+      Loading dashboard…
+    </div>
+  );
 
   const maxType = data.byType?.[0]?.cnt || 1;
   const maxDept = byDept?.[0]?.cnt || 1;
@@ -20,25 +25,35 @@ export default function Dashboard() {
   const statusMap = {};
   data.byStatus?.forEach(s => { statusMap[s.status] = s.cnt; });
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700 }}>Dashboard</h2>
-          <p className="text-muted text-sm">IT Asset Overview</p>
-        </div>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-.5px' }}>
+          {greeting}, {user.full_name?.split(' ')[0]} 👋
+        </h2>
+        <p className="text-muted text-sm" style={{ marginTop: 4 }}>
+          Here's your IT asset overview for today
+        </p>
       </div>
 
+      {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card primary">
           <div className="stat-label">Total Assets</div>
           <div className="stat-value">{data.totalAssets}</div>
+          <div className="stat-sub">All tracked assets</div>
         </div>
         <div className="stat-card success">
           <div className="stat-label">Active</div>
           <div className="stat-value">{statusMap.active || 0}</div>
+          <div className="stat-sub">In service</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card cyan">
           <div className="stat-label">Assigned</div>
           <div className="stat-value">{data.assigned}</div>
           <div className="stat-sub">{data.unassigned} unassigned</div>
@@ -46,26 +61,31 @@ export default function Dashboard() {
         <div className="stat-card warning">
           <div className="stat-label">Maintenance</div>
           <div className="stat-value">{statusMap.maintenance || 0}</div>
+          <div className="stat-sub">Under repair</div>
         </div>
         <div className="stat-card danger">
           <div className="stat-label">Warranty Expiring</div>
           <div className="stat-value">{data.warrantyExpiring}</div>
           <div className="stat-sub">Within 30 days</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card pink">
           <div className="stat-label">Total Value</div>
-          <div className="stat-value" style={{ fontSize: 20 }}>
-            ${Number(data.totalValue).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+          <div className="stat-value" style={{ fontSize: 22 }}>
+            ${Number(data.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}
           </div>
+          <div className="stat-sub">Asset portfolio</div>
         </div>
       </div>
 
-      <div className="grid-2">
+      {/* Charts */}
+      <div className="grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
-          <div className="card-header"><h3>Assets by Type</h3></div>
+          <div className="card-header">
+            <h3>📊 Assets by Type</h3>
+          </div>
           <div className="card-body">
-            {data.byType?.length === 0
-              ? <p className="text-muted">No data</p>
+            {!data.byType?.length
+              ? <p className="text-muted">No data yet</p>
               : <div className="bar-chart">
                   {data.byType.map(row => (
                     <div key={row.type} className="bar-row">
@@ -82,16 +102,21 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <div className="card-header"><h3>Assigned by Department</h3></div>
+          <div className="card-header">
+            <h3>🏢 Assigned by Department</h3>
+          </div>
           <div className="card-body">
-            {byDept.length === 0
+            {!byDept.length
               ? <p className="text-muted">No assignments yet</p>
               : <div className="bar-chart">
                   {byDept.map(row => (
                     <div key={row.department} className="bar-row">
                       <span className="bar-label">{row.department}</span>
                       <div className="bar-track">
-                        <div className="bar-fill" style={{ width: `${(row.cnt / maxDept) * 100}%`, background: 'var(--success)' }} />
+                        <div className="bar-fill" style={{
+                          width: `${(row.cnt / maxDept) * 100}%`,
+                          background: 'linear-gradient(90deg, var(--emerald), #34D399)'
+                        }} />
                       </div>
                       <span className="bar-count">{row.cnt}</span>
                     </div>
@@ -102,8 +127,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card mt-4">
-        <div className="card-header"><h3>Recent Activity</h3></div>
+      {/* Recent Activity */}
+      <div className="card">
+        <div className="card-header">
+          <h3>⚡ Recent Activity</h3>
+        </div>
         <div className="table-wrap">
           <table>
             <thead>
@@ -115,14 +143,20 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.recentActivity?.length === 0
+              {!data.recentActivity?.length
                 ? <tr><td colSpan={4}><div className="empty"><p>No activity yet</p></div></td></tr>
                 : data.recentActivity.map((row, i) => (
                   <tr key={i}>
-                    <td><span className="badge badge-assigned">{row.action.replace(/_/g, ' ')}</span></td>
-                    <td>{row.details}</td>
-                    <td>{row.username || '—'}</td>
-                    <td className="text-muted text-sm">{new Date(row.created_at).toLocaleString()}</td>
+                    <td>
+                      <span className="badge badge-assigned">
+                        {row.action.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--gray-700)' }}>{row.details}</td>
+                    <td style={{ fontWeight: 600 }}>{row.username || '—'}</td>
+                    <td className="text-muted text-sm">
+                      {new Date(row.created_at).toLocaleString()}
+                    </td>
                   </tr>
                 ))
               }
