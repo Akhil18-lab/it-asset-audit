@@ -6,7 +6,7 @@ const STATUSES = ['active', 'inactive', 'maintenance', 'retired'];
 
 const EMPTY_FORM = {
   name: '', type: 'Laptop', manufacturer: '', model: '', serial_number: '',
-  status: 'active', location: '', ip_address: '', mac_address: '',
+  status: 'active', location: '', mac_address: '',
   purchased_at: '', warranty_expires: '', purchase_price: '', notes: ''
 };
 
@@ -44,7 +44,7 @@ export default function Assets() {
     setForm({
       name: data.name || '', type: data.type || 'Laptop', manufacturer: data.manufacturer || '',
       model: data.model || '', serial_number: data.serial_number || '', status: data.status || 'active',
-      location: data.location || '', ip_address: data.ip_address || '', mac_address: data.mac_address || '',
+      location: data.location || '', mac_address: data.mac_address || '',
       purchased_at: data.purchased_at || '', warranty_expires: data.warranty_expires || '',
       purchase_price: data.purchase_price || '', notes: data.notes || ''
     });
@@ -202,10 +202,6 @@ export default function Assets() {
                   <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Office, Floor, Room..." />
                 </div>
                 <div className="form-group">
-                  <label>IP Address</label>
-                  <input value={form.ip_address} onChange={e => setForm({ ...form, ip_address: e.target.value })} placeholder="192.168.1.100" />
-                </div>
-                <div className="form-group">
                   <label>MAC Address</label>
                   <input value={form.mac_address} onChange={e => setForm({ ...form, mac_address: e.target.value })} placeholder="AA:BB:CC:DD:EE:FF" />
                 </div>
@@ -251,7 +247,7 @@ export default function Assets() {
                   ['Type', selected.type], ['Status', selected.status],
                   ['Manufacturer', selected.manufacturer], ['Model', selected.model],
                   ['Serial #', selected.serial_number], ['Location', selected.location],
-                  ['IP Address', selected.ip_address], ['MAC Address', selected.mac_address],
+                  ['MAC Address', selected.mac_address],
                   ['Purchased', selected.purchased_at], ['Warranty Expires', selected.warranty_expires],
                   ['Purchase Price', selected.purchase_price ? `$${Number(selected.purchase_price).toLocaleString()}` : null],
                 ].map(([label, val]) => val ? (
