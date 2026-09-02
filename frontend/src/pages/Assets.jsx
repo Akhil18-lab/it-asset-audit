@@ -1,25 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api';
 
 const TYPES = ['Desktop', 'Laptop', 'Monitor', 'Printer', 'Server', 'Network Equipment', 'Mobile Device', 'Tablet', 'Peripheral', 'Other'];
 const STATUSES = ['active', 'inactive', 'maintenance', 'retired'];
 
 // Quick physical-condition checklist filled in when an asset is registered
-// (same checklist categories used in the employee self-audit links).
-const CONDITION_FIELDS = [
-  ['condition_front_screen', 'Front (Screen On)'],
-  ['condition_keyboard_trackpad', 'Keyboard & Trackpad'],
-  ['condition_back_panel', 'Back Panel (Asset Tag Visible)'],
-  ['condition_sides_ports', 'Left & Right Sides (Ports)'],
-  ['condition_charger_cable', 'Charger & Cable'],
+// (same checklist categories used in the employee self-audit links) — each
+// one is a photo, not a text remark.
+const CONDITION_CATEGORIES = [
+  ['front_screen', 'Front (Screen On)'],
+  ['keyboard_trackpad', 'Keyboard & Trackpad'],
+  ['back_panel', 'Back Panel (Asset Tag Visible)'],
+  ['sides_ports', 'Left & Right Sides (Ports)'],
+  ['charger_cable', 'Charger & Cable'],
 ];
 
 const EMPTY_FORM = {
   name: '', type: 'Laptop', manufacturer: '', model: '', serial_number: '',
   status: 'active', location: '', mac_address: '',
-  purchased_at: '', warranty_expires: '', purchase_price: '', notes: '',
-  condition_front_screen: '', condition_keyboard_trackpad: '', condition_back_panel: '',
-  condition_sides_ports: '', condition_charger_cable: ''
+  purchased_at: '', warranty_expires: '', purchase_price: '', notes: ''
 };
 
 export default function Assets() {
@@ -33,6 +32,16 @@ export default function Assets() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Condition-checklist photos: `photos[category]` = { id, url } once uploaded
+  // (edit mode uploads immediately since the asset already has an id);
+  // `pendingFiles[category]` = a File picked before the asset exists yet
+  // (add mode — uploaded right after the new asset is created).
+  const [photos, setPhotos] = useState({});
+  const [pendingFiles, setPendingFiles] = useState({});
+  const [pendingPreviews, setPendingPreviews] = useState({});
+  const [uploadingCat, setUploadingCat] = useState(null);
+  const fileInputs = useRef({});
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = user.role === 'admin';
@@ -48,7 +57,14 @@ export default function Assets() {
 
   useEffect(() => { load(); }, [load]);
 
-  function openAdd() { setForm(EMPTY_FORM); setError(''); setModal('add'); }
+  function openAdd() {
+    setForm(EMPTY_FORM);
+    setPhotos({});
+    setPendingFiles({});
+    setPendingPreviews({});
+    setError('');
+    setModal('add');
+  }
 
   async function openEdit(asset) {
     const { data } = await api.get(`/assets/${asset.id}`);
@@ -58,13 +74,11 @@ export default function Assets() {
       model: data.model || '', serial_number: data.serial_number || '', status: data.status || 'active',
       location: data.location || '', mac_address: data.mac_address || '',
       purchased_at: data.purchased_at || '', warranty_expires: data.warranty_expires || '',
-      purchase_price: data.purchase_price || '', notes: data.notes || '',
-      condition_front_screen: data.condition_front_screen || '',
-      condition_keyboard_trackpad: data.condition_keyboard_trackpad || '',
-      condition_back_panel: data.condition_back_panel || '',
-      condition_sides_ports: data.condition_sides_ports || '',
-      condition_charger_cable: data.condition_charger_cable || ''
+      purchase_price: data.purchase_price || '', notes: data.notes || ''
     });
+    setPhotos(data.condition_photos || {});
+    setPendingFiles({});
+    setPendingPreviews({});
     setError('');
     setModal('edit');
   }
@@ -75,12 +89,48 @@ export default function Assets() {
     setModal('view');
   }
 
+  function handlePhotoPick(category, file) {
+    if (!file) return;
+    if (modal === 'add') {
+      setPendingFiles(prev => ({ ...prev, [category]: file }));
+      setPendingPreviews(prev => ({ ...prev, [category]: URL.createObjectURL(file) }));
+    } else {
+      uploadPhotoNow(category, file);
+    }
+  }
+
+  async function uploadPhotoNow(category, file) {
+    setUploadingCat(category);
+    const fd = new FormData();
+    fd.append('photo', file);
+    fd.append('category', category);
+    try {
+      const { data } = await api.post(`/assets/${selected.id}/condition-photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setPhotos(prev => ({ ...prev, [category]: { id: data.id, url: data.url } }));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Photo upload failed');
+    } finally {
+      setUploadingCat(null);
+    }
+  }
+
   async function handleSave() {
     if (!form.name || !form.type) { setError('Name and type are required'); return; }
     setSaving(true); setError('');
     try {
       if (modal === 'add') {
-        await api.post('/assets', form);
+        const { data } = await api.post('/assets', form);
+        const pending = Object.entries(pendingFiles);
+        for (const [category, file] of pending) {
+          const fd = new FormData();
+          fd.append('photo', file);
+          fd.append('category', category);
+          try {
+            await api.post(`/assets/${data.id}/condition-photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          } catch (photoErr) {
+            console.error(`Failed to upload photo for ${category}`, photoErr);
+          }
+        }
       } else {
         await api.put(`/assets/${selected.id}`, form);
       }
@@ -241,13 +291,40 @@ export default function Assets() {
 
                 <div className="form-group full" style={{ marginTop: 4 }}>
                   <label style={{ fontWeight: 600 }}>Initial Condition Checklist</label>
+                  {modal === 'add' && <p className="text-sm text-muted" style={{ margin: '2px 0 8px' }}>Photos upload once you click "Add Asset" below.</p>}
                 </div>
-                {CONDITION_FIELDS.map(([key, label]) => (
-                  <div className="form-group" key={key}>
-                    <label>{label}</label>
-                    <input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder="Remarks (e.g. OK, scratched...)" />
-                  </div>
-                ))}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                {CONDITION_CATEGORIES.map(([key, label]) => {
+                  const savedUrl = photos[key]?.url;
+                  const previewUrl = pendingPreviews[key];
+                  const thumb = savedUrl || previewUrl;
+                  return (
+                    <div key={key} style={{ border: '1px solid var(--gray-200)', borderRadius: 8, overflow: 'hidden' }}>
+                      {thumb
+                        ? <img src={thumb} alt={label} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
+                        : <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray-300)', fontSize: 26 }}>📷</div>}
+                      <div style={{ padding: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>{label}</div>
+                        <input
+                          ref={el => { fileInputs.current[key] = el; }}
+                          type="file" accept="image/*" style={{ display: 'none' }}
+                          onChange={e => handlePhotoPick(key, e.target.files[0])}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '100%' }}
+                          onClick={() => fileInputs.current[key].click()}
+                          disabled={uploadingCat === key}
+                        >
+                          {uploadingCat === key ? 'Uploading...' : thumb ? 'Replace' : 'Upload'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="modal-footer">
@@ -277,7 +354,6 @@ export default function Assets() {
                   ['MAC Address', selected.mac_address],
                   ['Purchased', selected.purchased_at], ['Warranty Expires', selected.warranty_expires],
                   ['Purchase Price', selected.purchase_price ? `$${Number(selected.purchase_price).toLocaleString()}` : null],
-                  ...CONDITION_FIELDS.map(([key, label]) => [label, selected[key]]),
                 ].map(([label, val]) => val ? (
                   <div key={label} className="form-group">
                     <label>{label}</label>
@@ -293,6 +369,25 @@ export default function Assets() {
                   </div>
                 )}
               </div>
+
+              {selected.condition_photos && Object.keys(selected.condition_photos).length > 0 && (
+                <div className="mt-4">
+                  <h4 style={{ marginBottom: 10, fontWeight: 600 }}>Initial Condition Checklist</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+                    {CONDITION_CATEGORIES.map(([key, label]) => {
+                      const photo = selected.condition_photos[key];
+                      return (
+                        <div key={key} style={{ border: '1px solid var(--gray-200)', borderRadius: 6, overflow: 'hidden' }}>
+                          {photo
+                            ? <img src={photo.url} alt={label} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
+                            : <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray-300)', fontSize: 12 }}>No photo</div>}
+                          <div style={{ padding: '4px 6px', fontSize: 11, color: 'var(--gray-500)' }}>{label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {selected.assignment_history?.length > 0 && (
                 <div className="mt-4">

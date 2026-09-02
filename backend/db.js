@@ -194,6 +194,18 @@ const SCHEMA_SQL = `
     original_name TEXT NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+
+  -- Photos attached directly to an asset's Initial Condition Checklist from
+  -- the admin Add/Edit Asset form (separate from the employee self-audit
+  -- link photos above, though the category keys line up).
+  CREATE TABLE IF NOT EXISTS asset_condition_photos (
+    id SERIAL PRIMARY KEY,
+    asset_id INTEGER NOT NULL REFERENCES assets(id),
+    category TEXT NOT NULL CHECK(category IN ('front_screen', 'keyboard_trackpad', 'back_panel', 'sides_ports', 'charger_cable')),
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
 `;
 
 // `assets` already exists in every deployed database, so new columns on it
