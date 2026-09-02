@@ -8,6 +8,8 @@ import AuditLog from './pages/AuditLog';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import PhysicalAudit from './pages/PhysicalAudit';
+import AuditLinks from './pages/AuditLinks';
+import PublicAudit from './pages/PublicAudit';
 
 function PrivateRoute({ children }) {
   return localStorage.getItem('token') ? children : <Navigate to="/login" replace />;
@@ -25,6 +27,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/self-audit/:token" element={<PublicAudit />} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="assets" element={<Assets />} />
@@ -33,6 +36,7 @@ export default function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="physical-audit" element={<PhysicalAudit />} />
           <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
+          <Route path="audit-links" element={<AdminRoute><AuditLinks /></AdminRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

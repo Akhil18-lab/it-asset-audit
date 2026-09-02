@@ -17,6 +17,7 @@ const ICONS = {
   physicalAudit:  { d: 'M9 11l3 3L22 4', d2: 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
   auditLog:       { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', d2: 'M14 2v6h6M16 13H8M16 17H8M10 9H8' },
   users:          { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', d2: 'M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+  auditLinks:     { d: 'M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.41 1.41', d2: 'M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.41-1.41' },
   logout:         { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', d2: 'M16 17l5-5-5-5M21 12H9' },
 };
 
@@ -78,6 +79,10 @@ export default function Layout() {
               <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
                 <span className="nav-icon-wrap"><Icon {...ICONS.users} /></span>
                 <span className="nav-label">Users</span>
+              </NavLink>
+              <NavLink to="/audit-links" className={({ isActive }) => isActive ? 'active' : ''}>
+                <span className="nav-icon-wrap"><Icon {...ICONS.auditLinks} /></span>
+                <span className="nav-label">Audit Links</span>
               </NavLink>
             </>
           )}

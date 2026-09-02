@@ -29,6 +29,8 @@ app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/physical-audit', require('./routes/physicalAudit'));
+app.use('/api/audit-links', require('./routes/auditLinks'));
+app.use('/api/public-audit', require('./routes/publicAudit'));
 app.use('/api/cron', require('./routes/cron'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));

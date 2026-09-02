@@ -169,6 +169,31 @@ const SCHEMA_SQL = `
     original_name TEXT NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+
+  -- Employee self-service audit links: a no-login, token-based way for a
+  -- named employee to upload a fixed checklist of photos for their own
+  -- asset (generated in bulk by an admin from the Audit Links page).
+  CREATE TABLE IF NOT EXISTS audit_links (
+    id SERIAL PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
+    person_name TEXT NOT NULL,
+    asset_id INTEGER REFERENCES assets(id),
+    condition_category TEXT CHECK(condition_category IN ('Good', 'Fair', 'Poor', 'Damaged')),
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'submitted')),
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    submitted_at TIMESTAMPTZ
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_link_photos (
+    id SERIAL PRIMARY KEY,
+    audit_link_id INTEGER NOT NULL REFERENCES audit_links(id),
+    category TEXT NOT NULL CHECK(category IN ('front_screen', 'keyboard_trackpad', 'back_panel', 'sides_ports', 'charger_cable', 'visible_damage')),
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
 `;
 
 let initPromise = null;
