@@ -1,11 +1,12 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
 // GET /api/audit
-router.get('/', authenticate, (req, res) => {
+router.get('/', authenticate, asyncHandler(async (req, res) => {
   const { action, entity_type, limit = 100, offset = 0 } = req.query;
   let query = `
     SELECT al.*, u.username, u.full_name
@@ -19,12 +20,13 @@ router.get('/', authenticate, (req, res) => {
   query += ' ORDER BY al.created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
 
-  const rows = db.prepare(query).all(...params);
-  const total = db.prepare(`SELECT COUNT(*) as cnt FROM audit_log WHERE 1=1${action ? ' AND action=?' : ''}${entity_type ? ' AND entity_type=?' : ''}`).get(
+  const rows = await db.prepare(query).all(...params);
+  const totalRow = await db.prepare(`SELECT COUNT(*) as cnt FROM audit_log WHERE 1=1${action ? ' AND action=?' : ''}${entity_type ? ' AND entity_type=?' : ''}`).get(
     ...[action, entity_type].filter(Boolean)
-  ).cnt;
+  );
+  const total = parseInt(totalRow.cnt, 10);
 
   res.json({ rows, total });
-});
+}));
 
 module.exports = router;

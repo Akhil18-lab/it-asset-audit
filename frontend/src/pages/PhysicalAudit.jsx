@@ -377,7 +377,7 @@ export default function PhysicalAudit() {
                 {photos.map(ph => (
                   <div key={ph.id} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--gray-200)' }}>
                     <img
-                      src={`/api/physical-audit/uploads/${ph.filename}`}
+                      src={ph.url}
                       alt={ph.original_name}
                       style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }}
                     />
