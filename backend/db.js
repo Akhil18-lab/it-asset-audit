@@ -196,6 +196,19 @@ const SCHEMA_SQL = `
   );
 `;
 
+// `assets` already exists in every deployed database, so new columns on it
+// can't go through CREATE TABLE IF NOT EXISTS (that only handles a table
+// that doesn't exist yet) — they need an explicit, idempotent ALTER TABLE
+// instead. Quick per-category condition remarks, filled in when an asset is
+// first registered.
+const MIGRATIONS_SQL = `
+  ALTER TABLE assets ADD COLUMN IF NOT EXISTS condition_front_screen TEXT;
+  ALTER TABLE assets ADD COLUMN IF NOT EXISTS condition_keyboard_trackpad TEXT;
+  ALTER TABLE assets ADD COLUMN IF NOT EXISTS condition_back_panel TEXT;
+  ALTER TABLE assets ADD COLUMN IF NOT EXISTS condition_sides_ports TEXT;
+  ALTER TABLE assets ADD COLUMN IF NOT EXISTS condition_charger_cable TEXT;
+`;
+
 let initPromise = null;
 
 // Vercel serverless functions are stateless between cold starts, so we can't
@@ -207,6 +220,7 @@ async function ensureInitialized() {
   if (!initPromise) {
     initPromise = (async () => {
       await pool.query(SCHEMA_SQL);
+      await pool.query(MIGRATIONS_SQL);
       const existingAdmin = await prepare('SELECT id FROM users WHERE role = ?').get('admin');
       if (!existingAdmin) {
         const hash = bcrypt.hashSync('admin123', 10);

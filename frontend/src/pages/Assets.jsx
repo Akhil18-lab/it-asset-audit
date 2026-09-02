@@ -4,10 +4,22 @@ import api from '../api';
 const TYPES = ['Desktop', 'Laptop', 'Monitor', 'Printer', 'Server', 'Network Equipment', 'Mobile Device', 'Tablet', 'Peripheral', 'Other'];
 const STATUSES = ['active', 'inactive', 'maintenance', 'retired'];
 
+// Quick physical-condition checklist filled in when an asset is registered
+// (same checklist categories used in the employee self-audit links).
+const CONDITION_FIELDS = [
+  ['condition_front_screen', 'Front (Screen On)'],
+  ['condition_keyboard_trackpad', 'Keyboard & Trackpad'],
+  ['condition_back_panel', 'Back Panel (Asset Tag Visible)'],
+  ['condition_sides_ports', 'Left & Right Sides (Ports)'],
+  ['condition_charger_cable', 'Charger & Cable'],
+];
+
 const EMPTY_FORM = {
   name: '', type: 'Laptop', manufacturer: '', model: '', serial_number: '',
   status: 'active', location: '', mac_address: '',
-  purchased_at: '', warranty_expires: '', purchase_price: '', notes: ''
+  purchased_at: '', warranty_expires: '', purchase_price: '', notes: '',
+  condition_front_screen: '', condition_keyboard_trackpad: '', condition_back_panel: '',
+  condition_sides_ports: '', condition_charger_cable: ''
 };
 
 export default function Assets() {
@@ -46,7 +58,12 @@ export default function Assets() {
       model: data.model || '', serial_number: data.serial_number || '', status: data.status || 'active',
       location: data.location || '', mac_address: data.mac_address || '',
       purchased_at: data.purchased_at || '', warranty_expires: data.warranty_expires || '',
-      purchase_price: data.purchase_price || '', notes: data.notes || ''
+      purchase_price: data.purchase_price || '', notes: data.notes || '',
+      condition_front_screen: data.condition_front_screen || '',
+      condition_keyboard_trackpad: data.condition_keyboard_trackpad || '',
+      condition_back_panel: data.condition_back_panel || '',
+      condition_sides_ports: data.condition_sides_ports || '',
+      condition_charger_cable: data.condition_charger_cable || ''
     });
     setError('');
     setModal('edit');
@@ -221,6 +238,16 @@ export default function Assets() {
                   <label>Notes</label>
                   <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." />
                 </div>
+
+                <div className="form-group full" style={{ marginTop: 4 }}>
+                  <label style={{ fontWeight: 600 }}>Initial Condition Checklist</label>
+                </div>
+                {CONDITION_FIELDS.map(([key, label]) => (
+                  <div className="form-group" key={key}>
+                    <label>{label}</label>
+                    <input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder="Remarks (e.g. OK, scratched...)" />
+                  </div>
+                ))}
               </div>
             </div>
             <div className="modal-footer">
@@ -250,6 +277,7 @@ export default function Assets() {
                   ['MAC Address', selected.mac_address],
                   ['Purchased', selected.purchased_at], ['Warranty Expires', selected.warranty_expires],
                   ['Purchase Price', selected.purchase_price ? `$${Number(selected.purchase_price).toLocaleString()}` : null],
+                  ...CONDITION_FIELDS.map(([key, label]) => [label, selected[key]]),
                 ].map(([label, val]) => val ? (
                   <div key={label} className="form-group">
                     <label>{label}</label>

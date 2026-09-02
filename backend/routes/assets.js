@@ -50,18 +50,24 @@ router.post('/', authenticate, adminOnly, asyncHandler(async (req, res) => {
   const {
     name, type, manufacturer, model, serial_number, status,
     location, ip_address, mac_address, purchased_at, warranty_expires,
-    purchase_price, notes
+    purchase_price, notes,
+    condition_front_screen, condition_keyboard_trackpad, condition_back_panel,
+    condition_sides_ports, condition_charger_cable
   } = req.body;
   if (!name || !type) return res.status(400).json({ error: 'name and type are required' });
 
   try {
     const result = await db.prepare(`
       INSERT INTO assets (name, type, manufacturer, model, serial_number, status,
-        location, ip_address, mac_address, purchased_at, warranty_expires, purchase_price, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        location, ip_address, mac_address, purchased_at, warranty_expires, purchase_price, notes,
+        condition_front_screen, condition_keyboard_trackpad, condition_back_panel,
+        condition_sides_ports, condition_charger_cable)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(name, type, manufacturer, model, serial_number, status || 'active',
       location, ip_address, mac_address, purchased_at, warranty_expires,
-      purchase_price, notes);
+      purchase_price, notes,
+      condition_front_screen, condition_keyboard_trackpad, condition_back_panel,
+      condition_sides_ports, condition_charger_cable);
 
     await db.prepare(`INSERT INTO audit_log (user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)`)
       .run(req.user.id, 'CREATE_ASSET', 'asset', result.lastInsertRowid, `Created asset: ${name}`);
@@ -78,7 +84,9 @@ router.put('/:id', authenticate, adminOnly, asyncHandler(async (req, res) => {
   const {
     name, type, manufacturer, model, serial_number, status,
     location, ip_address, mac_address, purchased_at, warranty_expires,
-    purchase_price, notes
+    purchase_price, notes,
+    condition_front_screen, condition_keyboard_trackpad, condition_back_panel,
+    condition_sides_ports, condition_charger_cable
   } = req.body;
 
   const existing = await db.prepare('SELECT id FROM assets WHERE id = ?').get(req.params.id);
@@ -88,11 +96,16 @@ router.put('/:id', authenticate, adminOnly, asyncHandler(async (req, res) => {
     await db.prepare(`
       UPDATE assets SET name=?, type=?, manufacturer=?, model=?, serial_number=?, status=?,
         location=?, ip_address=?, mac_address=?, purchased_at=?, warranty_expires=?,
-        purchase_price=?, notes=?, updated_at=now()
+        purchase_price=?, notes=?,
+        condition_front_screen=?, condition_keyboard_trackpad=?, condition_back_panel=?,
+        condition_sides_ports=?, condition_charger_cable=?,
+        updated_at=now()
       WHERE id=?
     `).run(name, type, manufacturer, model, serial_number, status,
       location, ip_address, mac_address, purchased_at, warranty_expires,
-      purchase_price, notes, req.params.id);
+      purchase_price, notes,
+      condition_front_screen, condition_keyboard_trackpad, condition_back_panel,
+      condition_sides_ports, condition_charger_cable, req.params.id);
 
     await db.prepare(`INSERT INTO audit_log (user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)`)
       .run(req.user.id, 'UPDATE_ASSET', 'asset', req.params.id, `Updated asset: ${name}`);
